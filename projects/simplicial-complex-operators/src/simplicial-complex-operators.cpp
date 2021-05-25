@@ -65,13 +65,24 @@ void SimplicialComplexOperators::assignElementIndices() {
  */
 SparseMatrix<size_t>
 SimplicialComplexOperators::buildVertexEdgeAdjacencyMatrix() const {
-  // TODO
+  auto edgeCount = mesh->nEdges();
+  auto vertexCount = mesh->nVertices();
+  std::vector<Eigen::Triplet<size_t>> tripletList;
+  tripletList.reserve(2 * edgeCount);
+  auto mat = geometrycentral::SparseMatrix<size_t>(edgeCount, vertexCount);
+  for (auto const &edge : mesh->edges()) {
+    auto edgeIndex = edge.getIndex();
+    auto firstVertexIndex = edge.firstVertex().getIndex();
+    auto secondVertexIndex = edge.secondVertex().getIndex();
+    tripletList.emplace_back(edgeIndex, firstVertexIndex, 1);
+    tripletList.emplace_back(edgeIndex, secondVertexIndex, 1);
+  }
+  mat.setFromTriplets(tripletList.begin(), tripletList.end());
+  return mat;
   // Note: You can build an Eigen sparse matrix from triplets, then return it as
   // a Geometry Central SparseMatrix. See
   // <https://eigen.tuxfamily.org/dox/group__TutorialSparse.html> for
   // documentation.
-
-  return identityMatrix<size_t>(1);  // placeholder
 }
 
 /*
@@ -83,8 +94,19 @@ SimplicialComplexOperators::buildVertexEdgeAdjacencyMatrix() const {
  */
 SparseMatrix<size_t> SimplicialComplexOperators::buildFaceEdgeAdjacencyMatrix()
     const {
-  // TODO
-  return identityMatrix<size_t>(1);  // placeholder
+  auto edgeCount = mesh->nEdges();
+  auto faceCount = mesh->nFaces();
+  std::vector<Eigen::Triplet<size_t>> tripletList;
+  tripletList.reserve(3 * faceCount);
+  auto mat = geometrycentral::SparseMatrix<size_t>(faceCount, edgeCount);
+  for (auto const &face : mesh->faces()) {
+    auto faceIndex = face.getIndex();
+    for (auto const &edge : face.adjacentEdges()) {
+      tripletList.emplace_back(faceIndex, edge.getIndex(), 1);
+    }
+  }
+  mat.setFromTriplets(tripletList.begin(), tripletList.end());
+  return mat;
 }
 
 /*
@@ -95,8 +117,12 @@ SparseMatrix<size_t> SimplicialComplexOperators::buildFaceEdgeAdjacencyMatrix()
  */
 Vector<size_t> SimplicialComplexOperators::buildVertexVector(
     const MeshSubset &subset) const {
-  // TODO
-  return Vector<size_t>::Zero(1);
+  auto vertexCount = mesh->nVertices();
+  Vector<size_t> vec = Vector<size_t>::Zero(vertexCount);
+  for (auto const &vertexIndex : subset.vertices) {
+    vec(vertexIndex) = 1;
+  }
+  return vec;
 }
 
 /*
@@ -107,8 +133,12 @@ Vector<size_t> SimplicialComplexOperators::buildVertexVector(
  */
 Vector<size_t> SimplicialComplexOperators::buildEdgeVector(
     const MeshSubset &subset) const {
-  // TODO
-  return Vector<size_t>::Zero(1);
+  auto edgeCount = mesh->nEdges();
+  Vector<size_t> vec = Vector<size_t>::Zero(edgeCount);
+  for (auto const &edgeIndex : subset.edges) {
+    vec(edgeIndex) = 1;
+  }
+  return vec;
 }
 
 /*
@@ -119,8 +149,12 @@ Vector<size_t> SimplicialComplexOperators::buildEdgeVector(
  */
 Vector<size_t> SimplicialComplexOperators::buildFaceVector(
     const MeshSubset &subset) const {
-  // TODO
-  return Vector<size_t>::Zero(1);
+  auto faceCount = mesh->nFaces();
+  Vector<size_t> vec = Vector<size_t>::Zero(faceCount);
+  for (auto const &faceIndex : subset.faces) {
+    vec(faceIndex) = 1;
+  }
+  return vec;
 }
 
 /*
@@ -131,8 +165,45 @@ Vector<size_t> SimplicialComplexOperators::buildFaceVector(
  * subset.
  */
 MeshSubset SimplicialComplexOperators::star(const MeshSubset &subset) const {
-  // TODO
-  return subset;  // placeholder
+  auto vertices = subset.vertices;
+  auto edges = subset.edges;
+  auto faces = subset.faces;
+  //  SparseMatrix<size_t> faceVectorAdjacencyMatrix = A1 * A0;
+  for (auto const &vertexIndex : subset.vertices) {
+    for (int edgeIndex = 0; edgeIndex < A0.rows(); ++edgeIndex) {
+      // Check if the edge contains the vertex
+      if (A0.coeff(edgeIndex, vertexIndex)) {
+        edges.emplace(edgeIndex);
+        // First solution for finding faces that contain the vertex
+        // Find the Faces that contain the edge
+        for (int faceIndex = 0; faceIndex < A1.rows(); ++faceIndex) {
+          // Check if face contains the edge
+          if (A1.coeff(faceIndex, edgeIndex)) {
+            faces.emplace(faceIndex);
+          }
+        }
+      }
+      /**
+      // Second solution for finding faces that contain the vertex. SLOW!
+      for (int faceIndex = 0; faceIndex < faceVectorAdjacencyMatrix.rows();
+      ++faceIndex) {
+        // Check if face contains the vertex
+        if (faceVectorAdjacencyMatrix.coeff(faceIndex, vertexIndex)) {
+          faces.emplace(faceIndex);
+        }
+      }
+      */
+    }
+  }
+  for (auto const &edgeIndex : subset.edges) {
+    for (int faceIndex = 0; faceIndex < A1.rows(); ++faceIndex) {
+      // Check if face contains the edge
+      if (A1.coeff(faceIndex, edgeIndex)) {
+        faces.emplace(faceIndex);
+      }
+    }
+  }
+  return MeshSubset(vertices, edges, faces);
 }
 
 /*
