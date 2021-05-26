@@ -214,8 +214,23 @@ MeshSubset SimplicialComplexOperators::star(const MeshSubset &subset) const {
  * subset.
  */
 MeshSubset SimplicialComplexOperators::closure(const MeshSubset &subset) const {
-  // TODO
-  return subset;  // placeholder
+  auto vertices = subset.vertices;
+  auto edges = subset.edges;
+  auto faces = subset.faces;
+  // First, add all the edges of faces
+  for (auto const &faceIndex : subset.faces) {
+    auto const &face = mesh->face(faceIndex);
+    for (const auto &edge : face.adjacentEdges()) {
+      edges.emplace(edge.getIndex());
+    }
+  }
+  // Then, add all the vertices of edges
+  for (auto const &edgeIndex : edges) {
+    auto const &edge = mesh->edge(edgeIndex);
+    vertices.emplace(edge.firstVertex().getIndex());
+    vertices.emplace(edge.secondVertex().getIndex());
+  }
+  return MeshSubset(vertices, edges, faces);
 }
 
 /*
