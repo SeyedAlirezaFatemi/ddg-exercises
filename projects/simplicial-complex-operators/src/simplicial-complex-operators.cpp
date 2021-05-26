@@ -254,8 +254,7 @@ MeshSubset SimplicialComplexOperators::link(const MeshSubset &subset) const {
  * simplicial complex, false otherwise.
  */
 bool SimplicialComplexOperators::isComplex(const MeshSubset &subset) const {
-  // TODO
-  return false;  // placeholder
+  return closure(subset).equals(subset);
 }
 
 /*
@@ -267,8 +266,41 @@ bool SimplicialComplexOperators::isComplex(const MeshSubset &subset) const {
  * degree of the given complex (-1 if not pure)
  */
 int SimplicialComplexOperators::isPureComplex(const MeshSubset &subset) const {
-  // TODO
-  return -1;  // placeholder
+  if (!isComplex(subset)) {
+    return -1;
+  }
+  auto edges = subset.edges;
+  // If the subset has vertices only => 0
+  if (edges.empty()) {
+    return 0;
+  }
+  auto vertices = subset.vertices;
+  for (const auto &edgeIndex : edges) {
+    auto const &edge = mesh->edge(edgeIndex);
+    vertices.erase(edge.firstVertex().getIndex());
+    vertices.erase(edge.secondVertex().getIndex());
+  }
+  // There are vertices that are not in an edge => -1
+  if (!vertices.empty()) {
+    return -1;
+  }
+  auto const &faces = subset.faces;
+  // All vertices are in an edge and there are no faces => 1
+  if (faces.empty()) {
+    return 1;
+  }
+  for (const auto &faceIndex : faces) {
+    auto const &face = mesh->face(faceIndex);
+    for (const auto &edge : face.adjacentEdges()) {
+      edges.erase(edge.getIndex());
+    }
+  }
+  // There are edges that are not in a face => -1
+  if (!edges.empty()) {
+    return -1;
+  }
+  // All vertices are in an edge and all edges are in a face => 2
+  return 2;
 }
 
 /*
