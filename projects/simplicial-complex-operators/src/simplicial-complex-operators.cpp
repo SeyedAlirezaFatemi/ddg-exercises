@@ -313,6 +313,38 @@ int SimplicialComplexOperators::isPureComplex(const MeshSubset &subset) const {
  */
 MeshSubset SimplicialComplexOperators::boundary(
     const MeshSubset &subset) const {
-  // TODO
-  return subset;  // placeholder
+  auto degree = isPureComplex(subset);
+  if (degree == 2) {
+    std::set<size_t> boundaryEdges{};
+    std::set<size_t> boundaryVertices{};
+    for (const auto &edgeIndex : subset.edges) {
+      // Using halfedge operations
+      // mesh->edge(edgeIndex).adjacentFaces();
+      int faceCount = 0;
+      for (const auto &faceIndex : subset.faces) {
+        faceCount += A1.coeff(faceIndex, edgeIndex);
+      }
+      if (faceCount == 1) {
+        boundaryEdges.emplace(edgeIndex);
+        boundaryVertices.emplace(
+            mesh->edge(edgeIndex).firstVertex().getIndex());
+        boundaryVertices.emplace(
+            mesh->edge(edgeIndex).secondVertex().getIndex());
+      }
+    }
+    return MeshSubset(boundaryVertices, boundaryEdges, {});
+  } else if (degree == 1) {
+    std::set<size_t> boundaryVertices{};
+    for (const auto &vertexIndex : subset.vertices) {
+      int edgeCount = 0;
+      for (const auto &edgeIndex : subset.edges) {
+        edgeCount += A0.coeff(edgeIndex, vertexIndex);
+      }
+      if (edgeCount == 1) {
+        boundaryVertices.emplace(vertexIndex);
+      }
+    }
+    return MeshSubset(boundaryVertices, {}, {});
+  }
+  return MeshSubset({}, {}, {});
 }
