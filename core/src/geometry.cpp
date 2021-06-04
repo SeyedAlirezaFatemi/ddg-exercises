@@ -98,8 +98,13 @@ double VertexPositionGeometry::cotan(Halfedge he) const {
  * Returns: The barycentric dual area of the given vertex.
  */
 double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
-  // TODO
-  return 0;  // placeholder
+  // The barycentric dual area associated with a vertex i is equal to one-third
+  // the area of all triangles ijk touching i.
+  double totalArea = 0.0;
+  for (const auto& face : v.adjacentFaces()) {
+    totalArea += faceArea(face);
+  }
+  return totalArea / 3;
 }
 
 /*
