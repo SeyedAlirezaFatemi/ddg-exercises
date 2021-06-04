@@ -44,8 +44,16 @@ namespace surface {
  * applied to discrete 0-forms.
  */
 SparseMatrix<double> VertexPositionGeometry::buildHodgeStar0Form() const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  // Diagonal Hodge Star. |V|*|V|
+  auto vertexCount = mesh.nVertices();
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto &vertex : mesh.vertices()) {
+    tripletList.emplace_back(vertex.getIndex(), vertex.getIndex(),
+                             barycentricDualArea(vertex));
+  }
+  auto star0 = geometrycentral::SparseMatrix<double>(vertexCount, vertexCount);
+  star0.setFromTriplets(tripletList.begin(), tripletList.end());
+  return star0;
 }
 
 /*
@@ -56,8 +64,17 @@ SparseMatrix<double> VertexPositionGeometry::buildHodgeStar0Form() const {
  * applied to discrete 1-forms.
  */
 SparseMatrix<double> VertexPositionGeometry::buildHodgeStar1Form() const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  // |E|*|E|
+  auto edgeCount = mesh.nEdges();
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto &edge : mesh.edges()) {
+    double cotanWeight =
+        0.5 * (cotan(edge.halfedge()) + cotan(edge.halfedge().twin()));
+    tripletList.emplace_back(edge.getIndex(), edge.getIndex(), cotanWeight);
+  }
+  auto star1 = geometrycentral::SparseMatrix<double>(edgeCount, edgeCount);
+  star1.setFromTriplets(tripletList.begin(), tripletList.end());
+  return star1;
 }
 
 /*
@@ -68,8 +85,16 @@ SparseMatrix<double> VertexPositionGeometry::buildHodgeStar1Form() const {
  * applied to discrete 2-forms.
  */
 SparseMatrix<double> VertexPositionGeometry::buildHodgeStar2Form() const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  // |F|*|F|
+  auto faceCount = mesh.nFaces();
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto &face : mesh.faces()) {
+    tripletList.emplace_back(face.getIndex(), face.getIndex(),
+                             1.0 / faceArea(face));
+  }
+  auto star2 = geometrycentral::SparseMatrix<double>(faceCount, faceCount);
+  star2.setFromTriplets(tripletList.begin(), tripletList.end());
+  return star2;
 }
 
 /*
@@ -81,8 +106,19 @@ SparseMatrix<double> VertexPositionGeometry::buildHodgeStar2Form() const {
  */
 SparseMatrix<double> VertexPositionGeometry::buildExteriorDerivative0Form()
     const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  // |E|*|V| * |V|*1 = |E|*1
+  auto edgeCount = mesh.nEdges();
+  auto vertexCount = mesh.nVertices();
+  auto d0 = geometrycentral::SparseMatrix<double>(edgeCount, vertexCount);
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto &edge : mesh.edges()) {
+    auto firstVertexIndex = edge.firstVertex().getIndex();
+    auto secondVertexIndex = edge.secondVertex().getIndex();
+    tripletList.emplace_back(edge.getIndex(), firstVertexIndex, 1);
+    tripletList.emplace_back(edge.getIndex(), secondVertexIndex, -1);
+  }
+  d0.setFromTriplets(tripletList.begin(), tripletList.end());
+  return d0;
 }
 
 /*
@@ -94,8 +130,23 @@ SparseMatrix<double> VertexPositionGeometry::buildExteriorDerivative0Form()
  */
 SparseMatrix<double> VertexPositionGeometry::buildExteriorDerivative1Form()
     const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  // |F|*|E| * |E|*1 = |F|*1
+  auto edgeCount = mesh.nEdges();
+  auto faceCount = mesh.nFaces();
+  auto d1 = geometrycentral::SparseMatrix<double>(faceCount, edgeCount);
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto &face : mesh.faces()) {
+    for (const auto &halfedge : face.adjacentHalfedges()) {
+      auto edge = halfedge.edge();
+      if (edge.halfedge() == halfedge) {
+        tripletList.emplace_back(face.getIndex(), edge.getIndex(), 1);
+      } else {
+        tripletList.emplace_back(face.getIndex(), edge.getIndex(), -1);
+      }
+    }
+  }
+  d1.setFromTriplets(tripletList.begin(), tripletList.end());
+  return d1;
 }
 
 }  // namespace surface
