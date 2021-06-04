@@ -80,8 +80,15 @@ double VertexPositionGeometry::totalArea() const {
  * Returns: The cotan of the angle opposite the given halfedge.
  */
 double VertexPositionGeometry::cotan(Halfedge he) const {
-  // TODO
-  return 0;  // placeholder
+  if (!he.isInterior()) {
+    return 0.0;
+  }
+  // cot(a, b) = (a * b) / |a x b|
+  // Get the outgoing halfedges
+  auto firstHalfedgeVector = halfedgeVector(he.next().twin());
+  auto secondHalfedgeVector = halfedgeVector(he.next().next());
+  return dot(firstHalfedgeVector, secondHalfedgeVector) /
+         cross(firstHalfedgeVector, secondHalfedgeVector).norm();
 }
 
 /*
