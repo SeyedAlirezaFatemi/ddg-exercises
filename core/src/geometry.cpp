@@ -116,8 +116,12 @@ double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
  * Returns: The angle clamped between 0 and π.
  */
 double VertexPositionGeometry::angle(Corner c) const {
-  // TODO
-  return 0;  // placeholder
+  // Get the two outgoing vectors from corner c
+  // c.halfedge() returns the halfedge whose tail touches this corner
+  auto firstVector = halfedgeVector(c.halfedge());
+  auto secondVector = halfedgeVector(c.halfedge().next().next().twin());
+  return acos(dot(firstVector, secondVector) /
+              (firstVector.norm() * secondVector.norm()));
 }
 
 /*
