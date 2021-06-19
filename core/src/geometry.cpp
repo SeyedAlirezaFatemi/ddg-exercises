@@ -132,8 +132,12 @@ double VertexPositionGeometry::angle(Corner c) const {
  * angle is computed. Returns: The dihedral angle.
  */
 double VertexPositionGeometry::dihedralAngle(Halfedge he) const {
-  // TODO
-  return 0;  // placeholder
+  auto firstNormal = faceNormal(he.face());
+  auto secondNormal = faceNormal(he.twin().face());
+  auto edgeVector = halfedgeVector(he);
+  return atan2(
+      dot(edgeVector, cross(firstNormal, secondNormal)) / edgeVector.norm(),
+      dot(firstNormal, secondNormal));
 }
 
 /*
@@ -143,8 +147,11 @@ double VertexPositionGeometry::dihedralAngle(Halfedge he) const {
  * Returns: The "equally weighted" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalEquallyWeighted(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& face : v.adjacentFaces()) {
+    normal += faceNormal(face);
+  }
+  return normal.normalize();
 }
 
 /*
@@ -154,8 +161,11 @@ Vector3 VertexPositionGeometry::vertexNormalEquallyWeighted(Vertex v) const {
  * Returns: The "tip angle weights" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalAngleWeighted(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& corner : v.adjacentCorners()) {
+    normal += angle(corner) * faceNormal(corner.face());
+  }
+  return normal.normalize();
 }
 
 /*
