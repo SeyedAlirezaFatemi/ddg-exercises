@@ -175,8 +175,14 @@ Vector3 VertexPositionGeometry::vertexNormalAngleWeighted(Vertex v) const {
  * Returns: The "inscribed sphere" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalSphereInscribed(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& corner : v.adjacentCorners()) {
+    auto firstEdge = halfedgeVector(corner.halfedge());
+    auto secondEdge = halfedgeVector(corner.halfedge().next().next().twin());
+    normal +=
+        cross(firstEdge, secondEdge) / (firstEdge.norm2() * secondEdge.norm2());
+  }
+  return normal.normalize();
 }
 
 /*
@@ -186,8 +192,11 @@ Vector3 VertexPositionGeometry::vertexNormalSphereInscribed(Vertex v) const {
  * Returns: The "face area weighted" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalAreaWeighted(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& face : v.adjacentFaces()) {
+    normal += faceArea(face) * faceNormal(face);
+  }
+  return normal.normalize();
 }
 
 /*
@@ -197,8 +206,12 @@ Vector3 VertexPositionGeometry::vertexNormalAreaWeighted(Vertex v) const {
  * Returns: The "Gauss curvature" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalGaussianCurvature(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& halfedge : v.outgoingHalfedges()) {
+    auto edgeVector = halfedgeVector(halfedge);
+    normal += dihedralAngle(halfedge) * edgeVector / edgeVector.norm();
+  }
+  return normal.normalize();
 }
 
 /*
@@ -209,8 +222,11 @@ Vector3 VertexPositionGeometry::vertexNormalGaussianCurvature(Vertex v) const {
  * Returns: The "mean curvature" normal vector.
  */
 Vector3 VertexPositionGeometry::vertexNormalMeanCurvature(Vertex v) const {
-  // TODO
-  return {0, 0, 0};  // placeholder
+  Vector3 normal{0., 0., 0.};
+  for (const auto& halfedge : v.outgoingHalfedges()) {
+    normal += edgeCotanWeight(halfedge.edge()) * halfedgeVector(halfedge);
+  }
+  return normal.normalize();
 }
 
 /*
@@ -220,8 +236,11 @@ Vector3 VertexPositionGeometry::vertexNormalMeanCurvature(Vertex v) const {
  * Returns: The angle defect of the given vertex.
  */
 double VertexPositionGeometry::angleDefect(Vertex v) const {
-  // TODO
-  return 0;  // placeholder
+  auto angleSum{0.0};
+  for (const auto& corner : v.adjacentCorners()) {
+    angleSum += cornerAngle(corner);
+  }
+  return 2 * PI - angleSum;
 }
 
 /*
@@ -231,8 +250,11 @@ double VertexPositionGeometry::angleDefect(Vertex v) const {
  * Returns: The total angle defect
  */
 double VertexPositionGeometry::totalAngleDefect() const {
-  // TODO
-  return 0;  // placeholder
+  auto totalDefect{0.0};
+  for (const auto& vertex : mesh.vertices()) {
+    totalDefect += angleDefect(vertex);
+  }
+  return totalDefect;
 }
 
 /*
@@ -242,8 +264,12 @@ double VertexPositionGeometry::totalAngleDefect() const {
  * Returns: The mean curvature at the given vertex.
  */
 double VertexPositionGeometry::scalarMeanCurvature(Vertex v) const {
-  // TODO
-  return 0;  // placeholder
+  // Scalar mean curvature = 0.5 * \sum_{ij \in E} l_{ij}\theta_{ij}
+  auto meanCurvature{0.0};
+  for (const auto& edge : v.adjacentEdges()) {
+    meanCurvature += edgeDihedralAngle(edge) * edgeLength(edge);
+  }
+  return 0.5 * meanCurvature;
 }
 
 /*
@@ -253,8 +279,14 @@ double VertexPositionGeometry::scalarMeanCurvature(Vertex v) const {
  * Returns: The circumcentric dual area of the given vertex.
  */
 double VertexPositionGeometry::circumcentricDualArea(Vertex v) const {
-  // TODO
-  return 0;  // placeholder
+  auto dualArea{0.0};
+  for (const auto& corner : v.adjacentCorners()) {
+    auto firstHalfedge = corner.halfedge();
+    auto secondHalfedge = corner.halfedge().next().next();
+    dualArea += halfedgeVector(firstHalfedge).norm2() * cotan(firstHalfedge) +
+                halfedgeVector(secondHalfedge).norm2() * cotan(secondHalfedge);
+  }
+  return 0.125 * dualArea;
 }
 
 /*
@@ -267,8 +299,12 @@ double VertexPositionGeometry::circumcentricDualArea(Vertex v) const {
  */
 std::pair<double, double> VertexPositionGeometry::principalCurvatures(
     Vertex v) const {
-  // TODO
-  return std::make_pair(0, 0);  // placeholder
+  auto area = circumcentricDualArea(v);
+  auto meanCurvature = scalarMeanCurvature(v);
+  auto gaussianCurvature = vertexGaussianCurvature(v);
+  auto temp1 = meanCurvature / area;
+  auto temp2 = sqrt(pow(temp1, 2) - gaussianCurvature / area);
+  return std::make_pair(temp1 - temp2, temp1 + temp2);
 }
 
 /*
