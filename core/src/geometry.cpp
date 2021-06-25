@@ -316,8 +316,26 @@ std::pair<double, double> VertexPositionGeometry::principalCurvatures(
  * Returns: Sparse positive definite Laplace matrix for the mesh.
  */
 SparseMatrix<double> VertexPositionGeometry::laplaceMatrix() const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  auto vertexCount = mesh.nVertices();
+  auto laplace =
+      geometrycentral::SparseMatrix<double>(vertexCount, vertexCount);
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto& vertex : mesh.vertices()) {
+    auto vertexWeight{0.0};
+    auto vertexIndex{vertex.getIndex()};
+    for (const auto& halfedge : vertex.outgoingHalfedges()) {
+      // We use -edgeCotanWeight instead of edgeCotanWeight to produce a
+      // positive definite matrix
+      auto adjacentVertexWeight = -edgeCotanWeight(halfedge.edge());
+      tripletList.emplace_back(vertexIndex, halfedge.tipVertex().getIndex(),
+                               adjacentVertexWeight);
+      vertexWeight -= adjacentVertexWeight;
+    }
+    vertexWeight += 1e-8;  // To make this matrix strictly positive definite
+    tripletList.emplace_back(vertexIndex, vertexIndex, vertexWeight);
+  }
+  laplace.setFromTriplets(tripletList.begin(), tripletList.end());
+  return laplace;
 }
 
 /*
@@ -328,8 +346,15 @@ SparseMatrix<double> VertexPositionGeometry::laplaceMatrix() const {
  * Returns: Sparse mass matrix for the mesh.
  */
 SparseMatrix<double> VertexPositionGeometry::massMatrix() const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  auto vertexCount = mesh.nVertices();
+  auto mass = geometrycentral::SparseMatrix<double>(vertexCount, vertexCount);
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (const auto& vertex : mesh.vertices()) {
+    tripletList.emplace_back(vertex.getIndex(), vertex.getIndex(),
+                             barycentricDualArea(vertex));
+  }
+  mass.setFromTriplets(tripletList.begin(), tripletList.end());
+  return mass;
 }
 
 /*

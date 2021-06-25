@@ -10,8 +10,8 @@ ScalarPoissonProblem::ScalarPoissonProblem(ManifoldSurfaceMesh* inputMesh, Verte
     geometry = inputGeo;
 
     // TODO: Build member variables A (Laplace matrix), M (mass matrix), total area
-    this->A = identityMatrix<double>(1); // placeholder
-    this->M = identityMatrix<double>(1); // placeholder
+    this->A = geometry->laplaceMatrix();
+    this->M = geometry->massMatrix();
     this->totalArea = 0;                 // placeholder
 }
 
