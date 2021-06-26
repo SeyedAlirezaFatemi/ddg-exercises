@@ -4,11 +4,11 @@
 /* Constructor
  * Input: The surface mesh <inputMesh> and geometry <inputGeo>.
  */
-MeanCurvatureFlow::MeanCurvatureFlow(ManifoldSurfaceMesh* inputMesh, VertexPositionGeometry* inputGeo) {
-
-    // Build member variables: mesh, geometry
-    mesh = inputMesh;
-    geometry = inputGeo;
+MeanCurvatureFlow::MeanCurvatureFlow(ManifoldSurfaceMesh* inputMesh,
+                                     VertexPositionGeometry* inputGeo) {
+  // Build member variables: mesh, geometry
+  mesh = inputMesh;
+  geometry = inputGeo;
 }
 
 /*
@@ -17,10 +17,10 @@ MeanCurvatureFlow::MeanCurvatureFlow(ManifoldSurfaceMesh* inputMesh, VertexPosit
  * Input: The mass matrix <M> of the mesh, and the timestep <h>.
  * Returns: A sparse matrix representing the mean curvature flow operator.
  */
-SparseMatrix<double> MeanCurvatureFlow::buildFlowOperator(const SparseMatrix<double>& M, double h) const {
-
-    // TODO
-    return identityMatrix<double>(1); // placeholder
+SparseMatrix<double> MeanCurvatureFlow::buildFlowOperator(
+    const SparseMatrix<double>& M, double h) const {
+  // TODO
+  return identityMatrix<double>(1);  // placeholder
 }
 
 /*
@@ -30,11 +30,12 @@ SparseMatrix<double> MeanCurvatureFlow::buildFlowOperator(const SparseMatrix<dou
  * Returns:
  */
 void MeanCurvatureFlow::integrate(double h) {
-
-    // TODO
-    // Note: Geometry Central has linear solvers: https://geometry-central.net/numerical/linear_solvers/
-    // Note: Update positions via geometry->inputVertexPositions
-    for (Vertex v : mesh->vertices()) {
-        geometry->inputVertexPositions[v] = geometry->inputVertexPositions[v]; // placeholder
-    }
+  // TODO
+  // Note: Geometry Central has linear solvers:
+  // https://geometry-central.net/numerical/linear_solvers/ Note: Update
+  // positions via geometry->inputVertexPositions
+  for (Vertex v : mesh->vertices()) {
+    geometry->inputVertexPositions[v] =
+        geometry->inputVertexPositions[v];  // placeholder
+  }
 }
