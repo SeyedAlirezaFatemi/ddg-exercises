@@ -1,6 +1,8 @@
 // Implement member functions for MeanCurvatureFlow class.
 #include "mean-curvature-flow.h"
 
+#include "geometrycentral/numerical/linear_solvers.h"
+
 /* Constructor
  * Input: The surface mesh <inputMesh> and geometry <inputGeo>.
  */
@@ -19,8 +21,12 @@ MeanCurvatureFlow::MeanCurvatureFlow(ManifoldSurfaceMesh* inputMesh,
  */
 SparseMatrix<double> MeanCurvatureFlow::buildFlowOperator(
     const SparseMatrix<double>& M, double h) const {
-  // TODO
-  return identityMatrix<double>(1);  // placeholder
+  auto const vertexCount = mesh->nVertices();
+  auto identity = identityMatrix<double>(vertexCount);
+  // (M-h\Delta)f_h=Mf_0
+  // In the code: (M+h\Delta)f_h=Mf_0 (our discrete Laplace matrix is the
+  // negative of the actual Laplacian.)
+  return M + h * geometry->laplaceMatrix();
 }
 
 /*
@@ -30,12 +36,25 @@ SparseMatrix<double> MeanCurvatureFlow::buildFlowOperator(
  * Returns:
  */
 void MeanCurvatureFlow::integrate(double h) {
-  // TODO
-  // Note: Geometry Central has linear solvers:
-  // https://geometry-central.net/numerical/linear_solvers/ Note: Update
-  // positions via geometry->inputVertexPositions
-  for (Vertex v : mesh->vertices()) {
-    geometry->inputVertexPositions[v] =
-        geometry->inputVertexPositions[v];  // placeholder
+  auto const vertexCount = mesh->nVertices();
+  auto mass = geometry->massMatrix();
+  auto flowOperator = buildFlowOperator(mass, h);
+  DenseMatrix<double> f{vertexCount, 3};
+  for (const auto& vertex : mesh->vertices()) {
+    f(vertex.getIndex(), 0) = geometry->inputVertexPositions[vertex].x;
+    f(vertex.getIndex(), 1) = geometry->inputVertexPositions[vertex].y;
+    f(vertex.getIndex(), 2) = geometry->inputVertexPositions[vertex].z;
+  }
+  // We need to solve Af_h=mf_0
+  f = mass * f;
+  PositiveDefiniteSolver<double> solver(flowOperator);
+  f.col(0) = solver.solve(f.col(0));
+  f.col(1) = solver.solve(f.col(1));
+  f.col(2) = solver.solve(f.col(2));
+  // Note: Update positions via geometry->inputVertexPositions
+  for (const auto& vertex : mesh->vertices()) {
+    geometry->inputVertexPositions[vertex] =
+        Vector3{f(vertex.getIndex(), 0), f(vertex.getIndex(), 1),
+                f(vertex.getIndex(), 2)};
   }
 }
